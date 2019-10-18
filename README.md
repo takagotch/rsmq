@@ -83,6 +83,8 @@ describe 'Redis-Simple-Message-Queue Test', ->
       
     setTimeout(done, 100)
   
+    
+  
   describe 'Promise Api', ->
     it 'should create a queue', () -> rsmq.createQueueAsync()
     it 'should send a message', () -> rsmq.sendMessageAsync()
@@ -149,13 +151,202 @@ describe 'Redis-Simple-Message-Queue Test', ->
     it 'Should fail: Create a new queue with non numeric vt - using createQueueAsync', () ->
       return rsmq.createQueueAsync({qname: queue1.name, vt: "not_a_number"}).should.be.rejectedWith()
     
-    it 'Should fail: Create a new queue with vt too high', (done) ->
-      rsmq.createQueueAsync({qname: queue1.name, vt: ""}, (err, resp) ->
-        err.message.should.equal()
+    it 'Should fail: Create a new queue with non numeric vt', (done) -> 
+      rsmq.createQueue {qname: queue1.name, vt: "not_a_number"}, (err, resp) ->
+        err.message.should.equal("vt must be between 0 and 9999")
         done()
         return
       return
-    it 'Should'
+    it 'Should fail: Create a new queue with non numeric vt', () ->
+      return rsmq.createQueueAsync({qname: queue1.name, vt: "not_a_number"}).should.be.rejectedWith(Error, { message: "vt must be better..."});
+    it 'Should fail: Create a queue with vt too high', (done) ->
+      rsmq.createQueue {qname: queue1.name, vt: 10000000}, (err, resp) ->
+        err.message.should.equal("vt must be between 0 and 9999999")
+        done()
+        return
+      return
+    it 'Should fail: Create a new queue with negative delay', (done) ->
+      rsmq.createQueue {qname: queue1.name, delay: -20}, (err, resp) ->
+        err.message.should.equal("delay must be between 0 and 9999999")
+        done()
+        return
+      return
+    it 'Should fail: Create a new queue with non numeric delay', (done) ->
+      rsmq.createQueue {qname: queue1.name, delay: "not_a_number"}, (err, resp) ->
+        err.message.should.equal("delay must be between 0 and 999999")
+        done()
+        return
+      return
+    it 'Should fail: Create a new queue with delay too high', (done) ->
+      rsmq.createQueue {qname: queue1.name, delay: 10000000}, (err, resp) ->
+        err.message.should.equal("delay must be between 0 and 999999")
+        done()
+        return
+      return
+    it 'Should fail: Create a new queue with negative maxsize', (done) ->
+      rsmq.createQueue{qname: queue1.name, maxsize: -20}, (err, resp) ->
+        err.message.should.equal("maxsize must be between 1024 and 65536")
+        done()
+        return
+      return
+    it 'Should fail: Create a new queue with non numeric maxsize', (done) ->
+      rsmq.createQueue {qname: queue1.name, maxsize: "not_a_number"}, (err, resp) ->
+        err.message.should.equal("maxsize must between 1024 and 65536")
+        done()
+        return
+      return
+    it 'Should failed: Create a new queue with maxsize too high' (done) ->
+      rsmq.createQueue {qname: queue1.name, maxsize: 66000}, (err, resp) ->
+        err.message.should.equal("maxsize must be between 1024 and 65536")
+        done()
+        return
+      return
+      
+    it 'Should fail: Create a new queue with maxsize too low', (done) -> 
+      rsmq.createQueue {qname: queue1.name, maxsize: 900}, (err, resp) ->
+        err.message.should.equal("maxsize must be between 1024 and 65536")
+        done()
+        return
+      return
+    it 'Should fail: Create a new queue with maxsize `-2`', (done) ->
+      rsmq.createQueue {qname: queue1.name, maxsize: -2}, (err, resp) ->
+        err.message.should.equal("maxsize must be between 1024 and 65536")
+        done()
+        return
+      return
+      
+    it 'ListQueues: Should return empty array', (done) ->
+      rsmq.listQueues (err, resp) ->
+        should.not.exist(err)
+        resp.length.should.equal(0)
+        done()
+        return
+      return
+    
+    it 'Create a new queue: queue1', (done) ->
+      rsmq.createQueue {qname: queue1.name}, (err, resp) ->
+        should.not.exist(err)
+        resp.should.equal(1)
+        done()
+        return
+      return
+    
+    it 'Should fail: Crate the same queue again', (done) -> 
+      rsmq.createQueue {qname: queue1.name}, (err, resp) ->
+        err.message.should.equal("Queue exists")
+        done()
+        return
+      return
+      
+    it 'ListQueues: Should return array with one element', (done) ->
+      rsmq.listQueues (err, resp) ->
+        should.not.exist(err)
+        resp.length.should.equal(1)
+        resp.should.containEql( queue1.name )
+        done()
+        return
+      return
+      
+    it 'Crate a new queue: queue2', (done) ->
+      rsmq.createQueue {qname: queue2.name, maxsize:2048}, (err, resp) ->
+        should.not.exits(err)
+        resp.should.equal(1)
+        done()
+        return
+      return
+      
+    it 'ListQueues: Should return array with two elements', (done) ->
+      rsmq.listQueues (err, resp) ->
+        should.not.exits(err)
+        resp.length.should.equal(2)
+        resp.should.containEql(queue1.name)
+        resp.should.containEql(queue2.name)
+        done()
+        return
+      return
+      
+    it 'Should succeed: GetQueueAttributes of queue 1', (done) ->
+      rsmq.getQueueAttributes {qname: queue1.name}, (err, resp) ->
+        should.not.exist(err)
+        resp.msgs.should.equal(0)
+        queue1.modified = resp.modified
+        done()
+        return
+      return
+    
+    it 'Should fail: GetQueueAttributes of bogus queue', (done) ->
+      rsmq.getQueueAttributes {qname:"sdfsdfsdf"}, (err, resp) ->
+        err.message.should.equal("Queue not found")
+        done()
+        return
+      return
+      
+    it 'Should fail: setQueueAttributes of bogus queue with supplied attributes', (done) ->
+    
+    it 'setQueueAttributes: Should return the queue with a new delay attribute', (done) ->
+    
+    it 'setQueueAttributes: Should return the queue with a new vt attribute', (done) ->
+    
+    it 'setQueueAttributes: Should return the queue with a new delay attribute', (done) ->
+    
+    it 'setQueueAttributes: Should return the queue with an umlimited maxsize' (done) ->
+    
+    it 'setQueueAttributes: Should return the queue with a new attribute' (done) ->
+    
+    it 'Should fail:setQueueAttributes: Should not accept too small maxsize' (done) ->
+    
+    it 'Should fail:setQueueAttributes: Should not accept negative value' (done) ->
+    
+    return
+    
+  descirbe 'Messages', ->
+    it 'Should fail: Send a message to non-existing queue' (done) ->
+      rsmq.sendMessage {qname:"rtlbrmpft", message:"foo"}, (err, resp) ->
+        err.message.should.equal("Queue not found")
+        done()
+        return
+      return
+    it '' (done) ->
+    
+    it '' (done) ->
+    
+    it '' (done) ->
+    
+    it '' (done) ->
+    
+    it '' (done) ->
+    
+    it '' (done) ->
+    
+    it '' (done) ->
+    
+    it '' (done) ->
+    
+    it '' (done) ->
+    
+    it '' (done) ->
+    
+    it '' (done) ->
+    
+    it '' (done) ->
+    
+    it '' (done) ->
+    
+    it '' (done) ->
+    
+    it '' (done) ->
+    
+    it '' (done) ->
+    
+    it '' (done) ->
+    
+    it '' (done) ->
+    
+    it '' (done) ->
+    
+    it '' (done) ->
+    
+    return
 
   describe 'Realtime Pub/Sub notifications', ->
     it 'Send another message to queue1', (done) -> 
