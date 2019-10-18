@@ -92,31 +92,48 @@ describe 'Redis-Simple-Message-Queue Test', ->
         resp.message.should.equal(queue3.m1)
         return
       )
-    it '', () ->
+    it 'should receive another message', () ->
       return rsmq.receiveMessageAsync({qname: queue3.name, vt: 1}).then((resp) ->
-        resp.message.should.equal()
+        resp.message.should.equal(queue3.m2)
         return
       )
-    it '', () -> setTimeout()
-    it '', () -> 
+    it 'Should fail: receive another message - no available message', () ->
+      return rsmq.receiveMessageAsync({qname: queue3.name, vt: 1}).then((resp) ->
+        should.not.exist(resp.id)
+        return
+      )
+    it 'wait 1010ms', (done) -> setTimeout(done, 1010)
+    it 'should receive another message', () -> 
+      return rsmq.receiveMessageAsync({qname: queue3.name, vt: 3}).then((resp) ->
+        resp.message.should.equal(queue3.m2)
+        return
+      )
+    it 'wait 1010ms', (done) -> setTimeout(done, 1010)
+    it 'should receive another message', () ->
       return rsmq.receiveMessageAsync({qname: queue3.name, vt: 3}).then((resp) ->
         resp.message.should.equal(queue3.m1)
         return
       )
-    it '', () -> rsmq.deleteQueueAsync({qname: queue3.name})
+    it 'should delete the created queue', () -> rsmq.deleteQueueAsync({qname: queue3.name})
     return
     
   describe 'Queues', ->
   
     it 'Should fail: Create a new queue with invalid characters in name', (done) ->
-      rsmq.createQueue {qname:""}
+      rsmq.createQueue {qname:"should throw"}, (err, resp) ->
         err.message.should.equal("Invalid qname format")
         done()
         return
       return
-    it '', () ->
-      rsmq.createQueue {}
-        err.message.should.equal()
+    it 'Should fail: Create a new queue with name longer 160 chars', (done) ->
+      rsmq.createQueue {qname:"name0000"}
+        err.message.should.equal("Invalid qname format")
+        done()
+        return
+      return
+    it 'Should fail: Create a new queue with negative vt', (done) ->
+      rsmq.createQueue {qname: queue1.name, vt: -20}, (err, resp) ->
+        err.message.should.equal("vt must be between 0 and 9999")
         done()
         return
       return
@@ -124,12 +141,12 @@ describe 'Redis-Simple-Message-Queue Test', ->
       return rsmq.createQueueAsync({qname: queue1.name, vt: -20}).should.be.rejectedWith(Error, { message: "vt must be between 0 and"})
       
     it 'Should fail: Create a new queue with non numeric vt', (done) ->
-      rsmq.createQueue {}, () ->
-        err.message.should.equal()
+      rsmq.createQueue {qname: queue1.name, vt: "not_a_number"}, (err, resp) ->
+        err.message.should.equal("vt must be between 0 and 9999")
         done()
         return
       return
-    it '', () ->
+    it 'Should fail: Create a new queue with non numeric vt - using createQueueAsync', () ->
       return rsmq.createQueueAsync({qname: queue1.name, vt: "not_a_number"}).should.be.rejectedWith()
     
     it 'Should fail: Create a new queue with vt too high', (done) ->
@@ -140,6 +157,36 @@ describe 'Redis-Simple-Message-Queue Test', ->
       return
     it 'Should'
 
+  describe 'Realtime Pub/Sub notifications', ->
+    it 'Send another message to queue1', (done) -> 
+      rsmq.sendMessage {qname: queue1.name, message:"Another World"}, (err, resp) ->
+        should.not.exist(err)
+        done()
+        return
+      return
+      
+    it 'wait 100ms', (done) -> setTimeout(done, 100)
+    
+    it 'check queue1 length. Should be 2', (done) ->
+      Q1LENGTH.should.equal(2)
+      done()
+      return
+      
+    it 'Send another message to queue1', (done) -> 
+      rsmq.sendMessage {qname: queue1.name, message:"Another World"}, (err, resp) ->
+        should.not.exist(err)
+        done()
+        return
+      return
+      
+    it 'wait 100ms', (done) -> setTimeout(done, 100)
+    
+    it 'check queue1 length. Should be 3', (done) ->
+      Q1LENGTH.should.equal(3)
+      done()
+      return
+    return
+  return
 ```
 
 ```
